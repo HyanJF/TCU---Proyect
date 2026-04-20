@@ -14,11 +14,17 @@ public class BotBlackboard : MonoBehaviour
     [Header("Asientos")]
     public List<Seat> seats = new List<Seat>();
 
+    [Header("Mesas")]
+    public Transform mesa;
+
+    [Header("AsientosMesa")]
+    public List <Seat> seatsTable = new List<Seat>();
+
     [Header("Bots en espera")]
     private List<GameObject> waitingBots = new List<GameObject>();
 
     [Header("Cooldown")]
-    public float releaseCooldown = 2f;
+    public float releaseCooldown = 1f;
     private float lastReleaseTime;
 
     private void Awake()
