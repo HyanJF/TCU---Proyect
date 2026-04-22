@@ -6,16 +6,30 @@ public class UISeatIndicator : MonoBehaviour
 
     private void Start()
     {
-        if (BotBlackboard.Instance != null)
+        if (SeatManager.Instance != null)
         {
-            BotBlackboard.Instance.OnSeatsChanged += UpdateUI;
+            SeatManager.Instance.OnSeatsChanged += UpdateUI;
             UpdateUI();
         }
     }
 
     void UpdateUI()
     {
-        bool state = BotBlackboard.Instance.HasOccupiedSeats();
+        if (SeatManager.Instance == null || BotBlackboard.Instance == null)
+            return;
+
+        bool state = SeatManager.Instance.HasOccupiedSeats(
+            BotBlackboard.Instance.seats // barra
+        );
+
         imageObject.SetActive(state);
+    }
+
+    private void OnDestroy()
+    {
+        if (SeatManager.Instance != null)
+        {
+            SeatManager.Instance.OnSeatsChanged -= UpdateUI;
+        }
     }
 }

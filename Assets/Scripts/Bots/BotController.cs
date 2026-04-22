@@ -1,114 +1,93 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 public class BotController : MonoBehaviour
 {
     private MovementController movement;
 
-    private Vector2 targetDirection;
-    private float changeTime = 2f;
-    private float timer;
+    public GridManager gridManager;
+    public Seat targetSeat;
 
-    private bool isAtBar = false;
-    private bool isFreeRoaming = false;
+    private List<Node> path;
+    private int pathIndex;
 
-    private float roamTime = 5f;
-    private float roamTimer;
+    [SerializeField] private float reachDistance = 0.25f;
+    [SerializeField] private float repathTime = 0.5f;
 
-    private int playerLayer;
+    private float repathTimer;
 
     private void Awake()
     {
         movement = GetComponent<MovementController>();
-        playerLayer = LayerMask.NameToLayer("Player");
     }
 
     private void Start()
     {
-        PickNewDirection();
+        AcquireNewSeat();
     }
 
     private void Update()
     {
-        // Si está en barra se queda ahi
-        if (isAtBar) return;
+        if (gridManager == null)
+            return;
 
-        // De chill xD
-        if (isFreeRoaming)
+        if (targetSeat == null)
         {
-            timer += Time.deltaTime;
-            roamTimer -= Time.deltaTime;
-
-            if (timer >= changeTime)
-            {
-                PickNewDirection();
-                timer = 0f;
-            }
-
-            movement.SetMovement(targetDirection);
-
-            // Para que vuelva a la barra
-            if (roamTimer <= 0f)
-            {
-                isFreeRoaming = false;
-            }
-
+            AcquireNewSeat();
+            movement.SetMovement(Vector2.zero);
             return;
         }
 
-        // Ir a la barra
-        Transform barra = BotBlackboard.Instance.barra;
+        repathTimer -= Time.deltaTime;
 
-        Vector2 dir = (barra.position - transform.position).normalized;
+        if (repathTimer <= 0f)
+        {
+            UpdatePath();
+            repathTimer = repathTime;
+        }
+
+        MoveAlongPath();
+    }
+
+    void AcquireNewSeat()
+    {
+        targetSeat = SeatManager.Instance.GetFreeSeat(BotBlackboard.Instance.seats);
+    }
+
+    void UpdatePath()
+    {
+        if (targetSeat == null) return;
+
+        path = gridManager.FindPath(transform.position, targetSeat.transform.position);
+        pathIndex = 0;
+    }
+
+    void MoveAlongPath()
+    {
+        if (path == null || path.Count == 0)
+        {
+            movement.SetMovement(Vector2.zero);
+            return;
+        }
+
+        if (pathIndex >= path.Count)
+        {
+            movement.SetMovement(Vector2.zero);
+
+            // cuando llega al asiento
+            SeatManager.Instance.OccupySeat(targetSeat, gameObject);
+            return;
+        }
+
+        Vector2 target = path[pathIndex].worldPosition;
+
+        if (Vector2.Distance(transform.position, target) < reachDistance)
+        {
+            pathIndex++;
+            return;
+        }
+
+        Vector2 dir = (target - (Vector2)transform.position).normalized;
         movement.SetMovement(dir);
-
-        float distance = Vector2.Distance(transform.position, barra.position);
-
-        if (distance < 1.5f)
-        {
-            ArriveAtBar();
-        }
-    }
-
-    void ArriveAtBar()
-    {
-        isAtBar = true;
-
-        movement.SetMovement(Vector2.zero);
-
-        // Ocupa asiento
-        BotBlackboard.Instance.GetRandomFreeSeat();
-
-        // Se registra en el sistema
-        BotBlackboard.Instance.RegisterBot(gameObject);
-
-        gameObject.SetActive(false);
-    }
-
-    // Cuando el Blackboard lo reactiva
-    public void OnReactivated()
-    {
-        isAtBar = false;
-        isFreeRoaming = true;
-
-        roamTimer = roamTime;
-        timer = 0f;
-
-        PickNewDirection();
-    }
-
-    void PickNewDirection()
-    {
-        targetDirection = new Vector2(
-            Random.Range(-1f, 1f),
-            Random.Range(-1f, 1f)
-        ).normalized;
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.layer == playerLayer)
-            return;
-
-        PickNewDirection();
     }
 }

@@ -1,21 +1,56 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Seat : MonoBehaviour
 {
-    public bool isOccupied = false;
-    public GameObject bot;
-
-    private void Update()
+    public enum SeatState
     {
-        if (bot != null)
-        {
-            bot.SetActive(isOccupied);
-        }
+        Free,
+        Reserved,
+        Occupied
     }
 
-    private void OnDrawGizmos()
+    public SeatState state = SeatState.Free;
+
+    [Header("Visual")]
+    public GameObject visualBot;
+
+    public GameObject currentBot;
+
+    private void Start()
     {
-        Gizmos.color = isOccupied ? Color.red : Color.green;
-        Gizmos.DrawSphere(transform.position, 0.2f);
+        if (visualBot != null)
+            visualBot.SetActive(false);
+    }
+
+    public void Reserve()
+    {
+        state = SeatState.Reserved;
+    }
+
+    public void Occupy(GameObject bot)
+    {
+        state = SeatState.Occupied;
+        currentBot = bot;
+
+        if (visualBot != null)
+            visualBot.SetActive(true);
+    }
+
+    public GameObject Release()
+    {
+        state = SeatState.Free;
+
+        if (visualBot != null)
+            visualBot.SetActive(false);
+
+        GameObject bot = currentBot;
+        currentBot = null;
+
+        return bot;
+    }
+
+    public bool IsFree()
+    {
+        return state == SeatState.Free;
     }
 }
