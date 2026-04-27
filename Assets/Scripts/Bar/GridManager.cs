@@ -9,11 +9,17 @@ public class GridManager : MonoBehaviour
 
     public LayerMask obstacleLayer;
 
+    [Header("Waypoints Settings")]
+    [Range(1, 10)] public int spacing = 3; // 🔥 puedes controlar densidad aquí
+
+    public List<Transform> generatedWaypoints = new List<Transform>();
+
     private Node[,] grid;
 
-    void Start()
+    void Awake()
     {
         CreateGrid();
+        GenerateWaypoints();
     }
 
     void CreateGrid()
@@ -37,6 +43,40 @@ public class GridManager : MonoBehaviour
                 grid[x, y] = new Node(walkable, worldPos, x, y);
             }
         }
+    }
+
+    public void GenerateWaypoints()
+    {
+        generatedWaypoints.Clear();
+
+        // 🔥 limpiar anteriores en escena (importante)
+        foreach (Transform child in transform)
+        {
+            if (child.name == "Waypoint")
+                Destroy(child.gameObject);
+        }
+
+        for (int x = 0; x < width; x += spacing)
+        {
+            for (int y = 0; y < height; y += spacing)
+            {
+                if (!IsAreaWalkable(x, y, 1))
+                    continue;
+
+                Node node = grid[x, y];
+
+                GameObject wp = new GameObject("Waypoint");
+                wp.transform.position = node.worldPosition;
+                wp.transform.parent = this.transform;
+
+                generatedWaypoints.Add(wp.transform);
+            }
+        }
+
+        Debug.Log($"Waypoints generados: {generatedWaypoints.Count}");
+
+        if (BotBlackboard.Instance != null)
+            BotBlackboard.Instance.waypoints = generatedWaypoints;
     }
 
     public Node NodeFromWorld(Vector2 worldPos)
@@ -163,11 +203,33 @@ public class GridManager : MonoBehaviour
         return path;
     }
 
+    bool IsAreaWalkable(int centerX, int centerY, int radius = 1)
+    {
+        for (int x = -radius; x <= radius; x++)
+        {
+            for (int y = -radius; y <= radius; y++)
+            {
+                int checkX = centerX + x;
+                int checkY = centerY + y;
+
+                if (checkX < 0 || checkX >= width || checkY < 0 || checkY >= height)
+                    return false;
+
+                if (!grid[checkX, checkY].walkable)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Debug (temporal)
     private void OnDrawGizmos()
     {
         if (grid == null)
             return;
 
+        // Grid
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -179,6 +241,21 @@ public class GridManager : MonoBehaviour
                 Gizmos.color = node.walkable ? Color.white : Color.red;
                 Gizmos.DrawWireCube(node.worldPosition, Vector3.one * (cellSize * 0.9f));
             }
+        }
+
+        // Waypoints + área
+        Gizmos.color = Color.yellow;
+        foreach (var wp in generatedWaypoints)
+        {
+            if (wp == null) continue;
+
+            Gizmos.DrawSphere(wp.position, 0.2f);
+
+            // área 3x3 visual
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireCube(wp.position, Vector3.one * cellSize * 3f);
+
+            Gizmos.color = Color.yellow;
         }
     }
 }

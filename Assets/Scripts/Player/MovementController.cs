@@ -30,6 +30,11 @@ public class MovementController : MonoBehaviour
         _PAnim.SetFloat("Speed", _MoveInput.sqrMagnitude);
     }
 
+    public bool HasMovement()
+    {
+        return _MoveInput.sqrMagnitude > 0.01f;
+    }
+
     private void FixedUpdate()
     {
         _Rb.MovePosition(_Rb.position + _MoveInput * _Speed * Time.fixedDeltaTime);

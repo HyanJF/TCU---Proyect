@@ -1,20 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BotController : MonoBehaviour
 {
-    private MovementController movement;
+    private IBotState currentState;
 
+    public MovementController movement;
     public GridManager gridManager;
+
     public Seat targetSeat;
 
-    private List<Node> path;
+    private List<Node> currentPath;
     private int pathIndex;
 
-    [SerializeField] private float reachDistance = 0.25f;
-    [SerializeField] private float repathTime = 0.5f;
+    private Vector2 lastTarget;
 
-    private float repathTimer;
+    [SerializeField] private float reachDistance = 0.25f;
 
     private void Awake()
     {
@@ -23,71 +25,160 @@ public class BotController : MonoBehaviour
 
     private void Start()
     {
-        AcquireNewSeat();
+        StartCoroutine(DelayedStart());
+    }
+
+    IEnumerator DelayedStart()
+    {
+        yield return null;
+
+        ChangeState(new BotWanderState());
     }
 
     private void Update()
     {
+        currentState?.Update();
+    }
+
+    public void ChangeState(IBotState newState)
+    {
+        currentState?.Exit();
+        currentState = newState;
+        currentState.Enter(this);
+    }
+
+    // MOVER A UN PUNTO
+    public void MoveTo(Vector2 target)
+    {
         if (gridManager == null)
             return;
 
-        if (targetSeat == null)
+        // recalcula si:
+
+        // - no hay path
+        // - o cambió el destino
+        if (currentPath == null || Vector2.Distance(target, lastTarget) > 0.5f)
         {
-            AcquireNewSeat();
+            Debug.Log($"[PATH] Nuevo destino: {target}");
+
+            currentPath = gridManager.FindPath(transform.position, target);
+            pathIndex = 0;
+            lastTarget = target;
+
+            if (currentPath == null)
+            {
+                Debug.LogWarning("[PATH] No se pudo generar path, moviendo directo");
+
+                Vector2 dir = (target - (Vector2)transform.position).normalized;
+                movement.SetMovement(dir);
+                return;
+            }
+            else
+            {
+                Debug.Log($"[PATH] Path generado con {currentPath.Count} nodos");
+            }
+        }
+
+        FollowPath();
+    }
+
+    void FollowPath()
+    {
+        if (currentPath == null || currentPath.Count == 0)
+        {
             movement.SetMovement(Vector2.zero);
             return;
         }
 
-        repathTimer -= Time.deltaTime;
-
-        if (repathTimer <= 0f)
-        {
-            UpdatePath();
-            repathTimer = repathTime;
-        }
-
-        MoveAlongPath();
-    }
-
-    void AcquireNewSeat()
-    {
-        targetSeat = SeatManager.Instance.GetFreeSeat(BotBlackboard.Instance.seats);
-    }
-
-    void UpdatePath()
-    {
-        if (targetSeat == null) return;
-
-        path = gridManager.FindPath(transform.position, targetSeat.transform.position);
-        pathIndex = 0;
-    }
-
-    void MoveAlongPath()
-    {
-        if (path == null || path.Count == 0)
+        if (pathIndex >= currentPath.Count)
         {
             movement.SetMovement(Vector2.zero);
             return;
         }
 
-        if (pathIndex >= path.Count)
-        {
-            movement.SetMovement(Vector2.zero);
+        Vector2 nodeTarget = currentPath[pathIndex].worldPosition;
 
-            // cuando llega al asiento
-            SeatManager.Instance.OccupySeat(targetSeat, gameObject);
-            return;
-        }
+        // DEBUG
+        Debug.DrawLine(transform.position, nodeTarget, Color.green);
 
-        Vector2 target = path[pathIndex].worldPosition;
-
-        if (Vector2.Distance(transform.position, target) < reachDistance)
+        if (Vector2.Distance(transform.position, nodeTarget) < reachDistance)
         {
             pathIndex++;
             return;
         }
 
-        Vector2 dir = (target - (Vector2)transform.position).normalized;
+        Vector2 dir = (nodeTarget - (Vector2)transform.position).normalized;
         movement.SetMovement(dir);
+    }
+
+    public void ClearPath()
+    {
+        currentPath = null;
+        pathIndex = 0;
+    }
+
+    private void OnDisable()
+    {
+        currentState = null;
+    }
+
+    // EVENTOS DE ACCIÓN
+
+    public void OnReachedSeat()
+    {
+        Debug.Log("[EVENT] Reached Seat");
+
+        BotStats stats = GetComponent<BotStats>();
+
+        if (stats != null)
+        {
+            stats.ReduceThirst(100f);
+        }
+
+        if (targetSeat != null)
+        {
+            SeatManager.Instance.OccupySeat(targetSeat, gameObject);
+        }
+
+        ClearPath();
+    }
+
+    public void OnReachedWaypoint()
+    {
+        Debug.Log("[EVENT] Reached Waypoint");
+
+        BotStats stats = GetComponent<BotStats>();
+
+        if (stats != null)
+        {
+            stats.AddComfort(5f);
+           
+        }
+
+        ClearPath();
+    }
+
+    public bool IsMoving()
+    {
+        if (movement == null)
+            return false;
+
+        return movement.HasMovement();
+    }
+
+    // DEBUG VISUAL
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.blue;
+        Gizmos.DrawSphere(transform.position, 0.2f);
+
+        // destino actual del path
+        Gizmos.color = Color.purple;
+        Gizmos.DrawSphere(lastTarget, 0.5f);
+
+        if (currentState is BotWanderState wander)
+        {
+            wander.DebugDraw();
+        }
     }
 }

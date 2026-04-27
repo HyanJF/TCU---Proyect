@@ -17,8 +17,17 @@ public class BotBlackboard : MonoBehaviour
     [Header("Asientos Mesas")]
     public List<Seat> seatsTable = new List<Seat>();
 
+    [Header("Waypoints")]
+    public List<Transform> waypoints = new List<Transform>();
+
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
     }
 }

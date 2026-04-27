@@ -4,13 +4,14 @@ public class UISeatIndicator : MonoBehaviour
 {
     public GameObject imageObject;
 
-    private void Start()
+    private void OnEnable()
     {
         if (SeatManager.Instance != null)
         {
             SeatManager.Instance.OnSeatsChanged += UpdateUI;
-            UpdateUI();
         }
+
+        UpdateUI(); // siempre actualizar al activarse
     }
 
     void UpdateUI()
@@ -18,14 +19,25 @@ public class UISeatIndicator : MonoBehaviour
         if (SeatManager.Instance == null || BotBlackboard.Instance == null)
             return;
 
-        bool state = SeatManager.Instance.HasOccupiedSeats(
-            BotBlackboard.Instance.seats // barra
+        if (imageObject == null)
+        {
+            Debug.LogWarning("[UISeatIndicator] imageObject no asignado");
+            return;
+        }
+
+        // Revisar TODOS los asientos
+        bool barOccupied = SeatManager.Instance.HasOccupiedSeats(
+            BotBlackboard.Instance.seats
         );
 
-        imageObject.SetActive(state);
+        bool finalState = barOccupied;
+
+        imageObject.SetActive(finalState);
+
+        Debug.Log($"[UI] Asientos ocupados → {finalState}");
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         if (SeatManager.Instance != null)
         {

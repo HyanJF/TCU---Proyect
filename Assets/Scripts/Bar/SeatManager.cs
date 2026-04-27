@@ -12,13 +12,31 @@ public class SeatManager : MonoBehaviour
         Instance = this;
     }
 
+    // SOLO CHECAR
+    public bool HasFreeSeat(List<Seat> seats)
+    {
+        if (seats == null) return false;
+
+        foreach (var seat in seats)
+        {
+            if (seat != null && seat.IsFree())
+                return true;
+        }
+
+        return false;
+    }
+
+    // OBTENER Y RESERVAR
     public Seat GetFreeSeat(List<Seat> seats)
     {
+        if (seats == null || seats.Count == 0)
+            return null;
+
         List<Seat> freeSeats = new List<Seat>();
 
         foreach (var seat in seats)
         {
-            if (seat.IsFree())
+            if (seat != null && seat.IsFree())
                 freeSeats.Add(seat);
         }
 
@@ -28,6 +46,8 @@ public class SeatManager : MonoBehaviour
         Seat selected = freeSeats[Random.Range(0, freeSeats.Count)];
         selected.Reserve();
 
+        Debug.Log($"[SeatManager] Asiento reservado: {selected.name}");
+
         OnSeatsChanged?.Invoke();
 
         return selected;
@@ -35,22 +55,43 @@ public class SeatManager : MonoBehaviour
 
     public void OccupySeat(Seat seat, GameObject bot)
     {
+        if (seat == null || bot == null)
+            return;
+
         seat.Occupy(bot);
+        bot.SetActive(false);
+
+        Debug.Log($"[SeatManager] Bot sentado en: {seat.name}");
+
         OnSeatsChanged?.Invoke();
     }
 
     public void ReleaseSeat(Seat seat)
     {
+        if (seat == null)
+            return;
+
         GameObject bot = seat.Release();
 
         if (bot != null)
         {
             bot.SetActive(true);
-            bot.transform.position = seat.transform.position;
+
+            Vector3 pos = seat.transform.position;
+            pos.y -= 1f;
+
+            bot.transform.position = pos;
 
             BotController controller = bot.GetComponent<BotController>();
 
-            controller.targetSeat = null;
+            if (controller != null)
+            {
+                controller.targetSeat = null;
+                controller.ClearPath();
+                controller.ChangeState(new BotThinkState());
+            }
+
+            Debug.Log($"[SeatManager] Bot liberado de: {seat.name}");
         }
 
         OnSeatsChanged?.Invoke();
@@ -58,9 +99,11 @@ public class SeatManager : MonoBehaviour
 
     public bool HasOccupiedSeats(List<Seat> seats)
     {
+        if (seats == null) return false;
+
         foreach (var seat in seats)
         {
-            if (seat.state == Seat.SeatState.Occupied)
+            if (seat != null && seat.state == Seat.SeatState.Occupied)
                 return true;
         }
 
@@ -69,9 +112,11 @@ public class SeatManager : MonoBehaviour
 
     public void ReleaseFirstOccupiedSeat(List<Seat> seats)
     {
+        if (seats == null) return;
+
         foreach (var seat in seats)
         {
-            if (seat.state == Seat.SeatState.Occupied)
+            if (seat != null && seat.state == Seat.SeatState.Occupied)
             {
                 ReleaseSeat(seat);
                 return;
