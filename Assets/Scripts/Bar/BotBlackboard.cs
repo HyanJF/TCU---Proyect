@@ -5,11 +5,9 @@ public class BotBlackboard : MonoBehaviour
 {
     public static BotBlackboard Instance;
 
-    [Header("Barra")]
-    public Transform barra;
-
-    [Header("Re-spawn")]
-    public Transform reactivatePoint;
+    [Header("Baño")]
+    public Transform bathroom;
+    public Transform exitBathroom;
 
     [Header("Asientos Barra")]
     public List<Seat> seats = new List<Seat>();

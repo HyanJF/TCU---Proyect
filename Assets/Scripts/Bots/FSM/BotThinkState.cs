@@ -29,73 +29,105 @@ public class BotThinkState : IBotState
     {
         bot.ClearPath();
 
+        BotPriority priority = bot.GetComponent<BotPriority>();
+
+        if (priority == null)
+        {
+            Debug.LogWarning("No hay BotPriority → Wander");
+            bot.ChangeState(new BotWanderState());
+            return;
+        }
+
+        if (BotBlackboard.Instance == null)
+        {
+            Debug.LogWarning("No hay Blackboard → Wander");
+            bot.ChangeState(new BotWanderState());
+            return;
+        }
+
         BotStats stats = bot.GetComponent<BotStats>();
 
-        if (stats == null)
+        if (stats != null)
         {
-            Debug.LogWarning("No hay BotStats → Wander");
-            bot.ChangeState(new BotWanderState());
-            return;
-        }
-
-        if (BotBlackboard.Instance == null || BotBlackboard.Instance.seats == null)
-        {
-            Debug.LogWarning("Blackboard o seats NULL → Wander");
-            bot.ChangeState(new BotWanderState());
-            return;
-        }
-
-        // INTERACT
-        if (stats.wantsInteract)
-        {
-            Debug.Log("[THINK] INTERACT → Desactivar bot");
-            bot.gameObject.SetActive(false);
-            return;
-        }
-
-        // THIRST
-        if (stats.thirst > 70f)
-        {
-            bool hasSeats = SeatManager.Instance != null &&
-                            SeatManager.Instance.HasFreeSeat(BotBlackboard.Instance.seats);
-
-            if (!hasSeats)
-            {
-                Debug.Log("[THINK] THIRST pero NO hay asientos → fallback");
-            }
-            else
-            {
-                Debug.Log("[THINK] THIRST → GO TO SEAT");
-
-                bot.targetSeat = SeatManager.Instance.GetFreeSeat(BotBlackboard.Instance.seats);
-
-                if (bot.targetSeat != null)
+            if (stats.drinksDone >= 1 && stats.bathroomVisits >= 1)
+            { 
+                if (BotBlackboard.Instance.seatsTable != null &&
+                    SeatManager.Instance != null &&
+                    SeatManager.Instance.HasFreeSeat(BotBlackboard.Instance.seatsTable))
                 {
-                    bot.ChangeState(new BotGoToSeatState());
-                    return;
+                    Debug.Log("[THINK] PROGRESS → GO TO TABLE");
+
+                    bot.targetSeat = SeatManager.Instance.GetFreeSeat(BotBlackboard.Instance.seatsTable);
+
+                    if (bot.targetSeat != null)
+                    {
+                        bot.ChangeState(new BotGoToSeatState());
+                        return;
+                    }
                 }
             }
         }
 
-        // COMFORT
-        if (stats.comfort < 30f)
+        BotNeed need = priority.EvaluateNeeds();
+
+        switch (need)
         {
-            Debug.Log("[THINK] LOW COMFORT → WANDER");
+            case BotNeed.Interact:
+                Debug.Log("[THINK] INTERACT → Desactivar bot");
+                bot.gameObject.SetActive(false);
+                return;
+
+            case BotNeed.Thirst:
+                HandleThirst();
+                return;
+
+            case BotNeed.Bladder:
+                Debug.Log("[THINK] BLADDER → GO TO BATHROOM");
+                bot.ChangeState(new BotGoToBathroomState());
+                return;
+
+            case BotNeed.Comfort:
+                Debug.Log("[THINK] COMFORT → WANDER");
+                bot.ChangeState(new BotWanderState());
+                return;
+
+            default:
+                Debug.Log("[THINK] DEFAULT → WANDER");
+                bot.ChangeState(new BotWanderState());
+                return;
+        }
+    }
+
+    void HandleThirst()
+    {
+        if (BotBlackboard.Instance.seats == null)
+        {
             bot.ChangeState(new BotWanderState());
             return;
         }
 
-        // BLADDER
-        if (stats.bladder > 70f)
+        bool hasSeats = SeatManager.Instance != null &&
+                        SeatManager.Instance.HasFreeSeat(BotBlackboard.Instance.seats);
+
+        if (!hasSeats)
         {
-            Debug.Log("[THINK] BLADDER → (temporal) WANDER");
+            Debug.Log("[THINK] THIRST pero NO hay asientos → Wander");
             bot.ChangeState(new BotWanderState());
             return;
         }
 
-        // DEFAULT
-        Debug.Log("[THINK] DEFAULT → WANDER");
-        bot.ChangeState(new BotWanderState());
+        Debug.Log("[THINK] THIRST → GO TO SEAT");
+
+        bot.targetSeat = SeatManager.Instance.GetFreeSeat(BotBlackboard.Instance.seats);
+
+        if (bot.targetSeat != null)
+        {
+            bot.ChangeState(new BotGoToSeatState());
+        }
+        else
+        {
+            bot.ChangeState(new BotWanderState());
+        }
     }
 
     public void Exit() { }

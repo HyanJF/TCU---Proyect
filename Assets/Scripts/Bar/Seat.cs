@@ -9,12 +9,21 @@ public class Seat : MonoBehaviour
         Occupied
     }
 
+    public enum SeatType
+    {
+        Bar,
+        Table
+    }
+
     public SeatState state = SeatState.Free;
 
     [Header("Visual")]
     public GameObject visualBot;
 
     public GameObject currentBot;
+
+    [Header("Type")]
+    public SeatType seatType;
 
     private void Start()
     {

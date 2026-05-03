@@ -8,19 +8,25 @@ public class BotController : MonoBehaviour
 
     public MovementController movement;
     public GridManager gridManager;
+    public float ReachDistance => reachDistance;
 
     public Seat targetSeat;
+    public List<Seat> currentSeatList;
 
     private List<Node> currentPath;
     private int pathIndex;
 
     private Vector2 lastTarget;
+    private Collider2D[] colliders;
+    private Renderer[] renderers;
 
     [SerializeField] private float reachDistance = 0.25f;
 
     private void Awake()
     {
         movement = GetComponent<MovementController>();
+        colliders = GetComponentsInChildren<Collider2D>();
+        renderers = GetComponentsInChildren<Renderer>();
     }
 
     private void Start()
@@ -123,22 +129,33 @@ public class BotController : MonoBehaviour
     }
 
     // EVENTOS DE ACCIÓN
-
     public void OnReachedSeat()
     {
         Debug.Log("[EVENT] Reached Seat");
+
+        if (targetSeat == null)
+        {
+            Debug.LogWarning("[Seat] targetSeat NULL");
+            return;
+        }
+
+        // VALIDACIÓN EXTRA
+        if (targetSeat.state == Seat.SeatState.Occupied)
+        {
+            Debug.LogWarning("[Seat] Ya estaba ocupado → cancelar");
+            targetSeat = null;
+            return;
+        }
 
         BotStats stats = GetComponent<BotStats>();
 
         if (stats != null)
         {
             stats.ReduceThirst(100f);
+            stats.drinksDone++;
         }
 
-        if (targetSeat != null)
-        {
-            SeatManager.Instance.OccupySeat(targetSeat, gameObject);
-        }
+        SeatManager.Instance.OccupySeat(targetSeat, gameObject);
 
         ClearPath();
     }
@@ -164,6 +181,20 @@ public class BotController : MonoBehaviour
             return false;
 
         return movement.HasMovement();
+    }
+
+    public void SetBotActiveVisual(bool active)
+    {
+        foreach (var col in colliders)
+            col.enabled = active;
+
+        foreach (var rend in renderers)
+            rend.enabled = active;
+    }
+
+    public bool IsInState<T>() where T : IBotState
+    {
+        return currentState is T;
     }
 
     // DEBUG VISUAL

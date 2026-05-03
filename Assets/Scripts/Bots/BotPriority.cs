@@ -28,9 +28,11 @@ public class BotPriority : MonoBehaviour
             selectedNeed = BotNeed.Bladder;
         }
 
-        if (stats.comfort > highestValue)
+        float comfortNeed = 100f - stats.comfort;
+
+        if (comfortNeed > highestValue)
         {
-            highestValue = stats.comfort;
+            highestValue = comfortNeed;
             selectedNeed = BotNeed.Comfort;
         }
 

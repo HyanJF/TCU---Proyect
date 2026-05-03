@@ -13,21 +13,28 @@ public class SeatManager : MonoBehaviour
     }
 
     // SOLO CHECAR
-    public bool HasFreeSeat(List<Seat> seats)
+    public bool HasFreeSeat(List<Seat> seats, Seat.SeatType? type = null)
     {
         if (seats == null) return false;
 
         foreach (var seat in seats)
         {
-            if (seat != null && seat.IsFree())
-                return true;
+            if (seat == null) continue;
+
+            if (!seat.IsFree()) continue;
+
+            // FILTRO POR TIPO
+            if (type.HasValue && seat.seatType != type.Value)
+                continue;
+
+            return true;
         }
 
         return false;
     }
 
     // OBTENER Y RESERVAR
-    public Seat GetFreeSeat(List<Seat> seats)
+    public Seat GetFreeSeat(List<Seat> seats, Seat.SeatType? type = null)
     {
         if (seats == null || seats.Count == 0)
             return null;
@@ -36,8 +43,15 @@ public class SeatManager : MonoBehaviour
 
         foreach (var seat in seats)
         {
-            if (seat != null && seat.IsFree())
-                freeSeats.Add(seat);
+            if (seat == null) continue;
+
+            if (!seat.IsFree()) continue;
+
+            // FILTRO POR TIPO
+            if (type.HasValue && seat.seatType != type.Value)
+                continue;
+
+            freeSeats.Add(seat);
         }
 
         if (freeSeats.Count == 0)
@@ -57,6 +71,13 @@ public class SeatManager : MonoBehaviour
     {
         if (seat == null || bot == null)
             return;
+
+        // VALIDACIÓN FINAL
+        if (seat.state == Seat.SeatState.Occupied)
+        {
+            Debug.LogWarning("[SeatManager] Intento de ocupar asiento ya ocupado");
+            return;
+        }
 
         seat.Occupy(bot);
         bot.SetActive(false);

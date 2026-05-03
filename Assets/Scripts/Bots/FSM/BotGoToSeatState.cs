@@ -26,8 +26,26 @@ public class BotGoToSeatState : IBotState
         {
             Debug.Log("[GoToSeat] Llegó al asiento");
 
-            bot.OnReachedSeat();
+            // VALIDACIÓN
+            if (bot.targetSeat == null)
+            {
+                Debug.Log("[GoToSeat] Asiento NULL → Think");
+                bot.ChangeState(new BotThinkState());
+                return;
+            }
 
+            var state = bot.targetSeat.state;
+
+            if (state == Seat.SeatState.Occupied)
+            {
+                Debug.Log("[GoToSeat] Asiento ya ocupado → fallback");
+
+                bot.targetSeat = null;
+                bot.ClearPath();
+                bot.ChangeState(new BotThinkState());
+                return;
+            }
+            bot.OnReachedSeat();
             bot.ClearPath();
         }
     }
