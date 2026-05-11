@@ -11,11 +11,15 @@ public class Node
     public int hCost;
     public Node parent;
 
+    public bool isTableZone;
+    public int movementPenalty;
+
     public int fCost => gCost + hCost;
 
-    public Node(bool walkable, Vector2 worldPosition, int gridX, int gridY)
+    public Node(bool walkable, bool isTableZone, Vector2 worldPosition, int gridX, int gridY)
     {
         this.walkable = walkable;
+        this.isTableZone = isTableZone;
         this.worldPosition = worldPosition;
         this.gridX = gridX;
         this.gridY = gridY;

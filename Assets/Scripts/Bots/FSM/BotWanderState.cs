@@ -8,24 +8,20 @@ public class BotWanderState : IBotState
 
     public void Enter(BotController bot)
     {
-        Debug.Log("Entrando a Wander");
         this.bot = bot;
 
         PickNewPoint();
-        bot.ClearPath();
-
-        Debug.Log($"[WANDER] Nuevo target: {targetPoint}");
-        
     }
 
     public void Update()
     {
-        bot.MoveTo(targetPoint);
+        bot.movement.MoveTo(targetPoint);
 
-        if (Vector2.Distance(bot.transform.position, targetPoint) < 1f)
+        if (bot.movement.Reached(targetPoint))
         {
-            bot.OnReachedWaypoint();
-            bot.ChangeState(new BotThinkState());
+            bot.needs.ApplyComfort(5f);
+
+            bot.stateMachine.ChangeState(new BotThinkState());
         }
     }
 
@@ -34,48 +30,15 @@ public class BotWanderState : IBotState
         var waypoints = BotBlackboard.Instance.waypoints;
 
         if (waypoints == null || waypoints.Count == 0)
-        {
-            Debug.LogWarning("No hay waypoints en Blackboard");
             return;
-        }
 
-        Transform selected = null;
-        int attempts = 10;
+        int index = Random.Range(0, waypoints.Count);
 
-        while (attempts > 0)
-        {
-            int index = Random.Range(0, waypoints.Count);
-
-            if (waypoints[index] != null)
-            {
-                selected = waypoints[index];
-                break;
-            }
-
-            attempts--;
-        }
-
-        if (selected == null)
-        {
-            Debug.LogError("Todos los waypoints son NULL");
-            return;
-        }
-
-        targetPoint = selected.position;
+        targetPoint = waypoints[index].position;
     }
 
     public void Exit()
     {
-        Debug.Log("Saliendo de Wander");
-        bot.movement.SetMovement(Vector2.zero);
-    }
-
-    public void DebugDraw()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(targetPoint, 0.2f);
-
-        Gizmos.color = Color.green;
-        Gizmos.DrawLine(bot.transform.position, targetPoint);
+        bot.movement.Stop();
     }
 }

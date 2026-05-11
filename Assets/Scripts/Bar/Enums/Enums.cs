@@ -6,5 +6,13 @@ public enum BotNeed
     Thirst,
     Bladder,
     Comfort,
+    Social,
     Interact
+}
+
+public enum SocialZoneSize
+{
+    Small,
+    Medium,
+    Large
 }

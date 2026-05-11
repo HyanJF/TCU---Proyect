@@ -108,8 +108,10 @@ public class SeatManager : MonoBehaviour
             if (controller != null)
             {
                 controller.targetSeat = null;
-                controller.ClearPath();
-                controller.ChangeState(new BotThinkState());
+
+                controller.movement.Stop();
+
+                controller.stateMachine.ChangeState(new BotThinkState());
             }
 
             Debug.Log($"[SeatManager] Bot liberado de: {seat.name}");

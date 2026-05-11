@@ -6,52 +6,31 @@ public class BotGoToSeatState : IBotState
 
     public void Enter(BotController bot)
     {
-        Debug.Log("Entrando a GoToSeat");
         this.bot = bot;
-        bot.ClearPath();
     }
 
     public void Update()
     {
         if (bot.targetSeat == null)
         {
-            Debug.Log("[GoToSeat] No hay asiento → Wander");
-            bot.ChangeState(new BotWanderState());
+            bot.stateMachine.ChangeState(new BotThinkState());
             return;
         }
 
-        bot.MoveTo(bot.targetSeat.transform.position);
+        bot.movement.MoveTo(bot.targetSeat.transform.position);
 
-        if (Vector2.Distance(bot.transform.position, bot.targetSeat.transform.position) < 1f)
+        if (bot.movement.Reached(bot.targetSeat.transform.position))
         {
-            Debug.Log("[GoToSeat] Llegó al asiento");
+            SeatManager.Instance.OccupySeat(bot.targetSeat, bot.gameObject);
 
-            // VALIDACIÓN
-            if (bot.targetSeat == null)
-            {
-                Debug.Log("[GoToSeat] Asiento NULL → Think");
-                bot.ChangeState(new BotThinkState());
-                return;
-            }
+            bot.actions.Drink();
 
-            var state = bot.targetSeat.state;
-
-            if (state == Seat.SeatState.Occupied)
-            {
-                Debug.Log("[GoToSeat] Asiento ya ocupado → fallback");
-
-                bot.targetSeat = null;
-                bot.ClearPath();
-                bot.ChangeState(new BotThinkState());
-                return;
-            }
-            bot.OnReachedSeat();
-            bot.ClearPath();
+            bot.movement.Stop();
         }
     }
 
     public void Exit()
     {
-        bot.movement.SetMovement(Vector2.zero);
+        bot.movement.Stop();
     }
 }
