@@ -31,34 +31,61 @@ public class SocialZoneGenerator : MonoBehaviour
 
         int createdZones = 0;
 
-        // LARGE
-
-        if (TryGenerateZone(SocialZoneSize.Large))
-        {
-            createdZones++;
-        }
-
-        // MEDIUM
-
-        if (createdZones < maxZones)
-        {
-            if (TryGenerateZone(SocialZoneSize.Medium))
-            {
-                createdZones++;
-            }
-        }
-
-        // SMALL
-
+        // LOOP PRINCIPAL
         while (createdZones < maxZones)
         {
-            bool generated =
-                TryGenerateZone(SocialZoneSize.Small);
+            bool generatedSomething = false;
 
-            if (!generated)
+            //ZONAS GRANDES
+
+            if (createdZones < maxZones)
+            {
+                bool generated =
+                    TryGenerateZone(SocialZoneSize.Large);
+
+                if (generated)
+                {
+                    createdZones++;
+                    generatedSomething = true;
+                }
+            }
+
+            //ZONAS MEDIANAS
+
+            if (createdZones < maxZones)
+            {
+                bool generated =
+                    TryGenerateZone(SocialZoneSize.Medium);
+
+                if (generated)
+                {
+                    createdZones++;
+                    generatedSomething = true;
+                }
+            }
+
+            //ZONAS PEQUEÑAS
+
+            if (createdZones < maxZones)
+            {
+                bool generated =
+                    TryGenerateZone(SocialZoneSize.Small);
+
+                if (generated)
+                {
+                    createdZones++;
+                    generatedSomething = true;
+                }
+            }
+
+            if (!generatedSomething)
+            {
+                Debug.Log(
+                    "[SOCIAL] No hay más espacio disponible"
+                );
+
                 break;
-
-            createdZones++;
+            }
         }
 
         Debug.Log(
@@ -72,7 +99,6 @@ public class SocialZoneGenerator : MonoBehaviour
         {
             for (int y = 0; y < gridManager.height; y++)
             {
-                // RANDOM CHANCE
                 if (Random.value > zoneChance)
                     continue;
 
@@ -124,7 +150,7 @@ public class SocialZoneGenerator : MonoBehaviour
         int spacing =
             GetZoneSpacing(sizeType);
 
-        // Tamaño total requerido
+        // Tamaño total pa que jale
         int radius =
             (zoneSize / 2) + spacing;
 
@@ -153,25 +179,35 @@ public class SocialZoneGenerator : MonoBehaviour
     }
 
     bool HasNearbyZone(
-        Vector2 position,
-        SocialZoneSize sizeType)
+    Vector2 position,
+    SocialZoneSize sizeType)
     {
         foreach (var zone in generatedZones)
         {
             int currentSize =
                 GetZoneSize(sizeType);
 
+            int currentSpacing =
+                GetZoneSpacing(sizeType);
+
             int otherSize =
                 GetZoneSize(zone.sizeType);
 
-            int spacing =
-                GetZoneSpacing(sizeType);
+            int otherSpacing =
+                GetZoneSpacing(zone.sizeType);
+
+            // RADIO TOTAL REAL
+            float currentRadius =
+                (currentSize * 0.5f)
+                + currentSpacing;
+
+            float otherRadius =
+                (otherSize * 0.5f)
+                + otherSpacing;
 
             float requiredDistance =
-                ((currentSize + otherSize)
-                * 0.5f
-                * gridManager.cellSize)
-                + spacing;
+                (currentRadius + otherRadius)
+                * gridManager.cellSize;
 
             float distance =
                 Vector2.Distance(
@@ -188,7 +224,7 @@ public class SocialZoneGenerator : MonoBehaviour
         return false;
     }
 
-    int GetZoneSize(SocialZoneSize type)
+    public int GetZoneSize(SocialZoneSize type)
     {
         switch (type)
         {

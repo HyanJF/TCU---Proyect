@@ -17,23 +17,6 @@ public class GridDebugRenderer : MonoBehaviour
         socialZoneGenerator = GetComponent<SocialZoneGenerator>();
     }
 
-    int GetZoneSize(SocialZoneSize type)
-{
-    switch (type)
-    {
-        case SocialZoneSize.Small:
-            return 3;
-
-        case SocialZoneSize.Medium:
-            return 5;
-
-        case SocialZoneSize.Large:
-            return 9;
-    }
-
-    return 3;
-}
-
     private void OnDrawGizmos()
     {
         if (gridManager == null)
@@ -152,28 +135,57 @@ public class GridDebugRenderer : MonoBehaviour
         foreach (var zone in socialZoneGenerator.generatedZones)
         {
             int size =
-                GetZoneSize(zone.sizeType);
+                socialZoneGenerator.GetZoneSize(
+                    zone.sizeType
+                );
+
+            float visualSize =
+                gridManager.cellSize * 0.9f;
 
             Vector3 zoneSize =
                 Vector3.one *
                 size *
-                gridManager.cellSize;
+                visualSize;
+
+            Color zoneColor = Color.green;
 
             // COLOR POR TIPO
+
             switch (zone.sizeType)
             {
                 case SocialZoneSize.Small:
-                    Gizmos.color = Color.green;
+                    zoneColor =
+                        new Color(0f, 1f, 0f, 0.20f);
                     break;
 
                 case SocialZoneSize.Medium:
-                    Gizmos.color = new Color(0f, 0.7f, 0f);
+                    zoneColor =
+                        new Color(0f, 0.8f, 0f, 0.25f);
                     break;
 
                 case SocialZoneSize.Large:
-                    Gizmos.color = new Color(0f, 0.4f, 0f);
+                    zoneColor =
+                        new Color(0f, 0.55f, 0f, 0.30f);
                     break;
             }
+            // CUBO SÓLIDO
+
+            Gizmos.color = zoneColor;
+
+            Gizmos.DrawCube(
+                zone.center,
+                zoneSize
+            );
+
+            // OUTLINE
+
+            Gizmos.color =
+                new Color(
+                    zoneColor.r,
+                    zoneColor.g,
+                    zoneColor.b,
+                    1f
+                );
 
             Gizmos.DrawWireCube(
                 zone.center,
